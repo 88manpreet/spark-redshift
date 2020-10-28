@@ -203,13 +203,13 @@ public class InMemoryS3AFileSystem extends FileSystem {
             dataMap.get(toS3Key(f)).toByteArray().length, true, 1,
             this.getDefaultBlockSize(), System.currentTimeMillis(), f
         );
-        S3AFileStatus status = S3AFileStatus.fromFileStatus(
-            fileStatus, Tristate.fromBool(
-                dataMap.tailMap(toS3Key(f)).size() == 1 && dataMap.containsKey(toS3Key(f))
-            )
-        );
 
         if (isDir(f)) {
+            S3AFileStatus status = S3AFileStatus.fromFileStatus(
+                fileStatus, Tristate.fromBool(
+                    dataMap.tailMap(toS3Key(f)).size() == 1 && dataMap.containsKey(toS3Key(f))
+                )
+            );
             return status;
         }
         else {
