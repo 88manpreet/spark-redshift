@@ -23,7 +23,9 @@ import java.net.URI;
 import java.util.*;
 
 import org.apache.hadoop.fs.*;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.fs.s3a.Tristate;
 import org.apache.hadoop.fs.s3a.S3AFileStatus;
 
 import org.apache.hadoop.conf.Configuration;
@@ -108,6 +110,8 @@ public class InMemoryS3AFileSystem extends FileSystem {
 
     @Override
     public FSDataOutputStream create(Path f) throws IOException {
+        // TODO: This could possibly be wrong
+        FileSystem.Statistics statistics = null;
 
         if (exists(f)) {
             throw new FileAlreadyExistsException();
@@ -118,7 +122,7 @@ public class InMemoryS3AFileSystem extends FileSystem {
 
         dataMap.put(key, inMemoryS3File);
 
-        return new FSDataOutputStream(inMemoryS3File);
+        return new FSDataOutputStream(inMemoryS3File, statistics);
 
     }
 
@@ -192,23 +196,29 @@ public class InMemoryS3AFileSystem extends FileSystem {
 
 
     @Override
-    public  S3AFileStatus getFileStatus(Path f) throws IOException {
+    public S3AFileStatus getFileStatus(Path f) throws IOException {
 
         if (!exists(f)) throw new FileNotFoundException();
+        FileStatus fileStatus = new FileStatus(
+            dataMap.get(toS3Key(f)).toByteArray().length, true, 1,
+            this.getDefaultBlockSize(), System.currentTimeMillis(), f
+        );
+        S3AFileStatus status = S3AFileStatus.fromFileStatus(
+            fileStatus, Tristate.fromBool(
+                dataMap.tailMap(toS3Key(f)).size() == 1 && dataMap.containsKey(toS3Key(f))
+            )
+        );
 
         if (isDir(f)) {
-            return new S3AFileStatus(
-                true,
-                dataMap.tailMap(toS3Key(f)).size() == 1 && dataMap.containsKey(toS3Key(f)),
-                f
-            );
+            return status;
         }
         else {
             return new S3AFileStatus(
                 dataMap.get(toS3Key(f)).toByteArray().length,
                 System.currentTimeMillis(),
                 f,
-                this.getDefaultBlockSize()
+                this.getDefaultBlockSize(),
+                "owner"
             );
         }
     }
