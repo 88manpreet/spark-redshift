@@ -111,7 +111,7 @@ public class InMemoryS3AFileSystem extends FileSystem {
     @Override
     public FSDataOutputStream create(Path f) throws IOException {
         // TODO: This could possibly be wrong
-        FileSystem.Statistics statistics = null;
+        FileSystem.Statistics statistics = new FileSystem.Statistics("test-ouput-stream");
 
         if (exists(f)) {
             throw new FileAlreadyExistsException();
@@ -199,18 +199,18 @@ public class InMemoryS3AFileSystem extends FileSystem {
     public S3AFileStatus getFileStatus(Path f) throws IOException {
 
         if (!exists(f)) throw new FileNotFoundException();
-        FileStatus fileStatus = new FileStatus(
-            dataMap.get(toS3Key(f)).toByteArray().length, true, 1,
-            this.getDefaultBlockSize(), System.currentTimeMillis(), f
-        );
+        Tristate state = Tristate.fromBool(dataMap.tailMap(toS3Key(f)).size() == 1 && dataMap.containsKey(toS3Key(f)));
 
         if (isDir(f)) {
-            S3AFileStatus status = S3AFileStatus.fromFileStatus(
+            FileStatus fileStatus = new FileStatus(
+                dataMap.tailMap(toS3Key(f)).size(), true, 1,
+                this.getDefaultBlockSize(), System.currentTimeMillis(), f
+            );
+            return S3AFileStatus.fromFileStatus(
                 fileStatus, Tristate.fromBool(
                     dataMap.tailMap(toS3Key(f)).size() == 1 && dataMap.containsKey(toS3Key(f))
                 )
             );
-            return status;
         }
         else {
             return new S3AFileStatus(
