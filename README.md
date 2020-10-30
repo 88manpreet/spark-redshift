@@ -1,3 +1,4 @@
+# TEST
 # Performant Redshift Data Source for Apache Spark - Community Edition
 
 [![Build Status](https://travis-ci.org/spark-redshift-community/spark-redshift.svg?branch=master)](https://travis-ci.com/spark-redshift-community/spark-redshift)
